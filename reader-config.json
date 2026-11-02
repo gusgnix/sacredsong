@@ -3,8 +3,8 @@
   "cipher": "AES-GCM",
   "kdf": "PBKDF2-SHA256",
   "iterations": 600000,
-  "salt": "n4YN5Hhey1AU1BOnAnmDNwdRPmdAwy7JcdmhO9jN3c8=",
+  "salt": "gresnzVE6y65n9MnoWgDu3IZsEjBd7wj5GcpLcBEORg=",
   "manifest": "library/book.sac",
   "pages": "library/pages/",
-  "version": "20261102-e4af255a"
+  "version": "20261102-01e890fc"
 }
