@@ -3,7 +3,7 @@
 GitHub Pages 静态翻书阅读器。默认访问地址：https://gusgnix.github.io/sacredsong/
 
 - 密码入口后先打开前几页，再后台读取全本。
-- 前后封面居中；前置页左白右文；歌谱第一页新起右页；其余内容双页展示。
+- 前后封面居中；前置页左白右文；谱页单数在左、双数在右；其余内容双页展示。
 - 目录搜索、原书热点跳转、全屏、触屏与键盘翻页、阅读进度记忆、开合书与翻页动画。
 - 网站不依赖 VPS、第三方字体或外部脚本。
 
@@ -26,3 +26,5 @@ python3 scripts/build-encrypted-assets.py --source-dir /path/to/existing-reader
 ## 发布
 
 仓库 Settings → Pages：Deploy from a branch，main 分支，根目录 /。本项目使用相对资源路径，可直接部署于 /sacredsong/。
+
+当前书籍资源：2026-11-02 最新单左双右、无礼仪页居中合订本，461页。源文件 SHA256：eb0f1f137e525dd9941ab77549c99bbe996f8b438b64bd812929bcd535431280。
