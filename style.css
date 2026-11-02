@@ -19,3 +19,6 @@
 
 /* Printed-page navigation labels remain readable beside the spread. */
 .edge{width:56px;font:13px/1.4 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;white-space:nowrap}.prev{left:-62px}.next{right:-62px}.page-nav{font-size:12px;min-height:38px;padding:6px 9px;white-space:nowrap}#pageInput{width:68px}@media(max-width:900px){main{padding-left:64px;padding-right:64px}.prev{left:-60px}.next{right:-60px}.edge{width:56px}}@media(max-width:500px){main{padding-left:58px;padding-right:58px}.prev{left:-56px}.next{right:-56px}.edge{width:52px;font-size:12px}.page-nav{padding:6px;font-size:12px}#jump{gap:5px}.page-controls{gap:3px}}
+
+/* Give the book all available height, with equal space above and below. */
+main{padding-top:12px;padding-bottom:12px}@media(max-width:900px){main{padding-top:8px;padding-bottom:8px}}
