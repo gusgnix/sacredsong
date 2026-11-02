@@ -66,42 +66,51 @@ async function loadWholeBook(){
 
 async function preload(ns){await Promise.all(ns.map(loadPage))}
 async function animateCoverChange(old,n){
-  const area=$('readingArea'),frame=$('book'),oldRect=frame.getBoundingClientRect(),areaRect=area.getBoundingClientRect();
-  const opening=isCover(old),frontSide=(opening?old:n)===1;
-  const oldSpread=$('spread').cloneNode(true);
-  const oldSide=$('spread').children[frontSide?0:1]||$('spread').firstElementChild;
-  const oldFace=oldSide?.querySelector('img')?.cloneNode(true);
-  const offset=rect=>({left:rect.left-areaRect.left,top:rect.top-areaRect.top,width:rect.width,height:rect.height});
+  const area=$('readingArea'),frame=$('book'),areaRect=area.getBoundingClientRect();
+  const relative=rect=>({x:rect.left-areaRect.left,y:rect.top-areaRect.top,w:rect.width,h:rect.height});
+  const origin=relative(frame.getBoundingClientRect()),oldSlots=[...$('spread').children].map(slot=>slot.cloneNode(true));
+  const opening=isCover(old),frontCover=(opening?old:n)===1;
+  const previousVisibility=frame.style.visibility;frame.style.visibility='hidden';
   page=n;render(n);
-  const newRect=frame.getBoundingClientRect(),target=offset(newRect),origin=offset(oldRect),duration=matchMedia('(prefers-reduced-motion: reduce)').matches?300:950;
-  const moving=document.createElement('div');moving.className='cover-motion';moving.setAttribute('aria-hidden','true');
-  const flap=document.createElement('div');flap.className='cover-flap';
-  const face=document.createElement('div'),back=document.createElement('div');face.className='cover-face';back.className='cover-face cover-back';
-  if(opening)face.append(makeImage(old));else{if(oldFace)face.append(oldFace);back.append(makeImage(n))}
-  flap.append(face,back);moving.append(flap);
-  let from,to,angle;
-  if(opening){
-    from=origin;to={...target,width:target.width/2,left:target.left+(frontSide?target.width/2:0)};
-    flap.style.transformOrigin=frontSide?'left center':'right center';angle=frontSide?-180:180;
-  }else{
-    from={...origin,width:origin.width/2,left:origin.left+(frontSide?0:origin.width/2)};
-    to={...target,left:target.left+(frontSide?-target.width:target.width)};
-    flap.style.transformOrigin=frontSide?'right center':'left center';angle=frontSide?180:-180;
+  const target=relative(frame.getBoundingClientRect()),newSlots=[...$('spread').children];
+  const opened=opening?target:origin,closed=opening?origin:target,half=opened.w/2,scale=closed.w/half;
+  const scene=document.createElement('div');scene.className='jacket-scene';scene.setAttribute('aria-hidden','true');
+  Object.assign(scene.style,{width:`${opened.w}px`,height:`${opened.h}px`});
+  const copyImage=(container,slot)=>{const img=slot?.querySelector('img');if(img)container.append(img.cloneNode(true))};
+  const fixed=document.createElement('div');fixed.className='jacket-fixed';fixed.style.left=frontCover?'50%':'0';
+  copyImage(fixed,(opening?newSlots:oldSlots)[frontCover?1:0]);
+  const flap=document.createElement('div');flap.className='jacket-flap';
+  const outer=document.createElement('div'),inner=document.createElement('div');outer.className='jacket-face';inner.className='jacket-face jacket-reverse';
+  if(opening){outer.append(makeImage(old));copyImage(inner,newSlots[frontCover?0:1])}
+  else{copyImage(outer,oldSlots[frontCover?0:1]);inner.append(makeImage(n))}
+  const shadeFront=document.createElement('span'),shadeBack=document.createElement('span');shadeFront.className=shadeBack.className='jacket-shade';
+  outer.append(shadeFront);inner.append(shadeBack);flap.append(outer,inner);
+  const leftHinge=opening?frontCover:!frontCover;
+  flap.style.left=leftHinge?'50%':'0';flap.style.transformOrigin=leftHinge?'left center':'right center';
+  const angle=leftHinge?-180:180;
+  const spine=document.createElement('div');spine.className='jacket-spine';
+  scene.append(fixed,spine,flap);area.append(scene);
+  const closedTransform=`translate3d(${closed.x-(frontCover?half*scale:0)}px,${closed.y}px,0) scale(${scale})`;
+  const openedTransform=`translate3d(${opened.x}px,${opened.y}px,0) scale(1)`;
+  const from=opening?closedTransform:openedTransform,to=opening?openedTransform:closedTransform;
+  scene.style.transform=from;
+  const duration=matchMedia('(prefers-reduced-motion: reduce)').matches?320:opening?1060:940;
+  const options={duration,easing:'cubic-bezier(.28,.12,.2,1)',fill:'both'};
+  const animations=[
+    scene.animate([{transform:from},{transform:to}],options),
+    flap.animate([{transform:'rotateY(0deg)'},{transform:`rotateY(${angle*.88}deg)`,offset:.8},{transform:`rotateY(${angle}deg)`}],options),
+    spine.animate([{opacity:opening?0:1},{opacity:opening?1:0}],options),
+    ...[shadeFront,shadeBack].map(shade=>shade.animate([{opacity:0},{opacity:.22,offset:.47},{opacity:0}],options))
+  ];
+  try{
+    await Promise.race([Promise.all(animations.map(animation=>animation.finished.catch(()=>{}))),new Promise(resolve=>setTimeout(resolve,duration+350))]);
+    render(n);frame.style.visibility=previousVisibility;
+    await Promise.race([new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))),new Promise(resolve=>setTimeout(resolve,90))]);
+    const handoff=scene.animate([{opacity:1},{opacity:0}],{duration:100,easing:'ease-out',fill:'both'});animations.push(handoff);
+    await handoff.finished.catch(()=>{});
+  }finally{
+    frame.style.visibility=previousVisibility;scene.remove();animations.forEach(animation=>animation.cancel());render(n);
   }
-  const place=rect=>({left:`${rect.left}px`,top:`${rect.top}px`,width:`${rect.width}px`,height:`${rect.height}px`});
-  Object.assign(moving.style,place(to));area.append(moving);
-  const motions=[];let underlay;
-  if(!opening){
-    underlay=document.createElement('div');underlay.className='cover-underlay';underlay.setAttribute('aria-hidden','true');
-    Object.assign(underlay.style,place(origin));oldSpread.removeAttribute('id');underlay.append(oldSpread);area.append(underlay);
-    motions.push(underlay.animate([{opacity:1,offset:0},{opacity:1,offset:.25},{opacity:0,offset:.9},{opacity:0,offset:1}],{duration,fill:'both'}));
-  }
-  motions.push(frame.animate([{width:`${origin.width}px`,height:`${origin.height}px`},{width:`${target.width}px`,height:`${target.height}px`}],{duration,easing:'cubic-bezier(.3,0,.2,1)',fill:'both'}));
-  motions.push($('spread').animate(opening?[{opacity:0},{opacity:1,offset:.45},{opacity:1}]:[{opacity:0},{opacity:0,offset:.8},{opacity:1}],{duration,fill:'both'}));
-  motions.push($('book').querySelector('.gutter').animate(opening?[{opacity:0},{opacity:1}]:[{opacity:1},{opacity:0}],{duration,fill:'both'}));
-  motions.push(moving.animate([place(from),place(to)],{duration,easing:'cubic-bezier(.3,0,.2,1)',fill:'both'}));
-  motions.push(flap.animate([{transform:'rotateY(0deg)'},{transform:`rotateY(${angle}deg)`}],{duration,easing:'cubic-bezier(.35,.02,.25,1)',fill:'both'}));
-  try{await Promise.all(motions.map(animation=>animation.finished.catch(()=>{})))}finally{moving.remove();underlay?.remove();motions.forEach(animation=>animation.cancel());render(n)}
 }
 
 async function animatePageChange(old,n){
