@@ -1,0 +1,10 @@
+{
+  "format": "SAC1",
+  "cipher": "AES-GCM",
+  "kdf": "PBKDF2-SHA256",
+  "iterations": 600000,
+  "salt": "hpDstAKVjsW3OeJ9cN+uFS6qvTP0ndQhU6UYOn5ZQr4=",
+  "manifest": "library/book.sac",
+  "pages": "library/pages/",
+  "version": "20261102-a15aab47"
+}

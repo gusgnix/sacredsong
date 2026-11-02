@@ -1,0 +1,14 @@
+# Never commit plaintext book content or credentials.
+.env
+.env.*
+*.token
+*.pem
+*.key
+reader-auth.json
+work/
+outputs/
+assets/
+*.pdf
+*.webp
+__pycache__/
+.DS_Store
