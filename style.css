@@ -22,3 +22,5 @@
 
 /* Give the book all available height, with equal space above and below. */
 main{padding-top:12px;padding-bottom:12px}@media(max-width:900px){main{padding-top:8px;padding-bottom:8px}}
+
+.access-submit-spinner{display:inline-block;flex:none;width:17px;height:17px;border:2px solid #ffffff40;border-top-color:#fff8ee;border-radius:50%;animation:entrySpin .8s linear infinite}@keyframes entrySpin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.access-submit-spinner{animation:none!important}}
