@@ -158,7 +158,29 @@ async function go(n,animate=true){
 
 function step(direction){const ps=pagesAt(page,single());go(direction>0?ps.at(-1)+1:page-1)}
 function toggleToc(open){$('toc').classList.toggle('open',open);$('toc').inert=!open;$('shade').hidden=!open;$('menu').setAttribute('aria-expanded',String(open));if(open)$('search').focus();else $('menu').focus()}
-function renderToc(query=''){const frag=document.createDocumentFragment();for(const item of book.toc){if(query&&!item.title.toLowerCase().includes(query.toLowerCase()))continue;const btn=document.createElement('button');btn.dataset.page=item.page;if(item.depth===0)btn.classList.add('section');const name=document.createElement('span');name.textContent=item.title;const num=document.createElement('small');num.textContent=`${printedLabel(item.page)} 页`;btn.append(name,num);btn.onclick=()=>{go(item.page);toggleToc(false)};frag.append(btn)}if(!frag.childNodes.length){const p=document.createElement('p');p.textContent='没有找到相关曲目';frag.append(p)}$('tocItems').replaceChildren(frag)}
+function normalizeSearchNumbers(text){
+  const digits={'零':0,'〇':0,'一':1,'二':2,'两':2,'兩':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
+  const units={'十':10,'百':100,'千':1000,'万':10000,'萬':10000,'亿':100000000,'億':100000000};
+  return String(text).toLowerCase().replace(/[０-９]/g,char=>String.fromCharCode(char.charCodeAt(0)-0xfee0))
+    .replace(/[零〇一二两兩三四五六七八九十百千万萬亿億]+/g,token=>{
+      if(!/[十百千万萬亿億]/.test(token))return [...token].map(char=>digits[char]).join('');
+      let total=0,section=0,number=0;
+      for(const char of token){
+        if(Object.hasOwn(digits,char)){number=digits[char];continue}
+        const unit=units[char];
+        if(unit<10000)section+=(number||1)*unit;
+        else if(unit===10000){total+=(section+number)*unit;section=0}
+        else{total=(total+section+number)*unit;section=0}
+        number=0;
+      }
+      return String(total+section+number);
+    }).replace(/\d+/g,number=>String(Number(number)));
+}
+function matchesTocSearch(title,query){
+  const value=query.trim().toLowerCase();
+  return title.toLowerCase().includes(value)||normalizeSearchNumbers(title).includes(normalizeSearchNumbers(value));
+}
+function renderToc(query=''){const frag=document.createDocumentFragment();for(const item of book.toc){if(!matchesTocSearch(item.title,query))continue;const btn=document.createElement('button');btn.dataset.page=item.page;if(item.depth===0)btn.classList.add('section');const name=document.createElement('span');name.textContent=item.title;const num=document.createElement('small');num.textContent=`${printedLabel(item.page)} 页`;btn.append(name,num);btn.onclick=()=>{go(item.page);toggleToc(false)};frag.append(btn)}if(!frag.childNodes.length){const p=document.createElement('p');p.textContent='没有找到相关曲目';frag.append(p)}$('tocItems').replaceChildren(frag)}
 let noticeTimer;function notice(text){$('notice').textContent=text;$('notice').hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>$('notice').hidden=true,4000)}
 document.querySelector('.brand').onclick=e=>{e.preventDefault();go(1)};$('menu').onclick=()=>toggleToc(true);$('closeToc').onclick=$('shade').onclick=()=>toggleToc(false);$('search').oninput=e=>renderToc(e.target.value.trim());$('prev').onclick=()=>step(-1);$('next').onclick=()=>step(1);$('jump').onsubmit=e=>{e.preventDefault();jumpToPrinted($('pageInput').value)};$('progress').onchange=e=>go(e.target.value);$('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}catch{notice('当前浏览器暂不支持全屏')}};addEventListener('keydown',e=>{if(!authenticated||/INPUT|TEXTAREA/.test(e.target.tagName)||$('toc').classList.contains('open'))return;if(e.key==='ArrowRight'){e.preventDefault();step(1)}if(e.key==='ArrowLeft'){e.preventDefault();step(-1)}if(e.key==='Home'){e.preventDefault();go(1)}if(e.key==='End'){e.preventDefault();go(book.pages)}});let touchX,touchY;$('book').addEventListener('touchstart',e=>{touchX=e.changedTouches[0].clientX;touchY=e.changedTouches[0].clientY},{passive:true});$('book').addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-touchX,dy=e.changedTouches[0].clientY-touchY;if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.5)step(dx<0?1:-1)},{passive:true});addEventListener('resize',()=>{if(!book||busy)return;page=normalize(page);render(page);update()});addEventListener('hashchange',()=>{const n=Number(location.hash.match(/page=(\d+)/)?.[1]);history.replaceState(null,'',location.pathname+location.search);if(n)go(n)});
 
