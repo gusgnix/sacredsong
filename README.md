@@ -1,6 +1,6 @@
 # 朱健仁答唱咏 · 合订本
 
-GitHub Pages 静态翻书阅读器。默认访问地址：https://gusgnix.github.io/sacredsong/
+GitHub Pages 静态翻书阅读器。
 
 - 密码入口后先打开前几页，再后台读取全本。
 - 前后封面居中；前置页左白右文；谱页单数在左、双数在右；其余内容双页展示。
