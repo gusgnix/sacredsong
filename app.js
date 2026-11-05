@@ -184,6 +184,17 @@ function renderToc(query=''){const frag=document.createDocumentFragment();for(co
 let noticeTimer;function notice(text){$('notice').textContent=text;$('notice').hidden=false;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>$('notice').hidden=true,4000)}
 document.querySelector('.brand').onclick=e=>{e.preventDefault();go(1)};$('menu').onclick=()=>toggleToc(true);$('closeToc').onclick=$('shade').onclick=()=>toggleToc(false);$('search').oninput=e=>renderToc(e.target.value.trim());$('prev').onclick=()=>step(-1);$('next').onclick=()=>step(1);$('jump').onsubmit=e=>{e.preventDefault();jumpToPrinted($('pageInput').value)};$('progress').onchange=e=>go(e.target.value);$('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen()}catch{notice('当前浏览器暂不支持全屏')}};addEventListener('keydown',e=>{if(!authenticated||/INPUT|TEXTAREA/.test(e.target.tagName)||$('toc').classList.contains('open'))return;if(e.key==='ArrowRight'){e.preventDefault();step(1)}if(e.key==='ArrowLeft'){e.preventDefault();step(-1)}if(e.key==='Home'){e.preventDefault();go(1)}if(e.key==='End'){e.preventDefault();go(book.pages)}});let touchX,touchY;$('book').addEventListener('touchstart',e=>{touchX=e.changedTouches[0].clientX;touchY=e.changedTouches[0].clientY},{passive:true});$('book').addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-touchX,dy=e.changedTouches[0].clientY-touchY;if(Math.abs(dx)>55&&Math.abs(dx)>Math.abs(dy)*1.5)step(dx<0?1:-1)},{passive:true});addEventListener('resize',()=>{if(!book||busy)return;page=normalize(page);render(page);update()});addEventListener('hashchange',()=>{const n=Number(location.hash.match(/page=(\d+)/)?.[1]);history.replaceState(null,'',location.pathname+location.search);if(n)go(n)});
 
+async function reportSuccessfulUnlock(proof){
+  if(typeof proof!=='string'||!proof)return;
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+  try{
+    await fetch('https://usmylx.com/api/pages-unlock',{
+      method:'POST',mode:'cors',credentials:'omit',keepalive:true,signal:controller.signal,
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({proof,eventId:crypto.randomUUID()})
+    });
+  }catch{}finally{clearTimeout(timer)}
+}
 function accessBusy(active){ $('accessSubmit').disabled=active;$('accessPassword').disabled=active;$('accessSubmitSpinner').hidden=!active;$('accessSubmitText').textContent=active?'加载中…':'进入';$('accessForm').setAttribute('aria-busy',String(active)); }
 async function openBook(metadata){
   accessBusy(true);
@@ -205,7 +216,7 @@ $('accessForm').onsubmit=async event=>{
   const password=$('accessPassword').value;if(!password)return;
   accessBusy(true);$('accessError').hidden=true;
   try{
-    const metadata=await unlockBook(password);authenticated=true;$('accessPassword').value='';await openBook(metadata);
+    const metadata=await unlockBook(password);void reportSuccessfulUnlock(metadata.unlockProof);delete metadata.unlockProof;authenticated=true;$('accessPassword').value='';await openBook(metadata);
   }catch(error){
     $('accessError').textContent=error.message||'暂时无法打开，请重试。';$('accessError').hidden=false;accessBusy(false);$('accessPassword').focus();
   }
